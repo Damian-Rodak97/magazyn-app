@@ -101,15 +101,27 @@ window.firebaseDb = {
             }
 
             console.log('✅ User logged in:', currentUser.email);
-            const warehouses = JSON.parse(warehousesJson);
-            console.log('📦 Warehouses to save:', warehouses);
+            const data = JSON.parse(warehousesJson);
+            console.log('📦 Original data:', data);
             const userId = currentUser.uid;
             console.log('🔑 User ID:', userId);
+
+            // Convert nested arrays to JSON strings (Firestore doesn't support nested arrays)
+            const warehousesForFirestore = data.warehouses.map(warehouse => ({
+                ...warehouse,
+                Grid: JSON.stringify(warehouse.Grid || []),
+                Corridors: JSON.stringify(warehouse.Corridors || []),
+                Taken: JSON.stringify(warehouse.Taken || []),
+                TakenDates: JSON.stringify(warehouse.TakenDates || [])
+            }));
+
+            console.log('📦 Converted for Firestore:', warehousesForFirestore);
 
             // Save to user's document
             const userDocRef = doc(db, 'users', userId);
             await setDoc(userDocRef, {
-                warehouses: warehouses,
+                warehouses: warehousesForFirestore,
+                nextId: data.nextId || 1,
                 lastUpdated: new Date().toISOString()
             });
 
@@ -140,8 +152,26 @@ window.firebaseDb = {
 
             if (docSnap.exists()) {
                 const data = docSnap.data();
-                console.log('✅ Warehouses loaded from Firestore:', data.warehouses);
-                return { success: true, data: JSON.stringify(data.warehouses || []) };
+                console.log('✅ Data from Firestore:', data);
+                
+                // Convert JSON strings back to arrays
+                const warehouses = (data.warehouses || []).map(warehouse => ({
+                    ...warehouse,
+                    Grid: JSON.parse(warehouse.Grid || '[]'),
+                    Corridors: JSON.parse(warehouse.Corridors || '[]'),
+                    Taken: JSON.parse(warehouse.Taken || '[]'),
+                    TakenDates: JSON.parse(warehouse.TakenDates || '[]')
+                }));
+
+                console.log('✅ Converted warehouses:', warehouses);
+                
+                // Return in the same format as saved (with nextId)
+                const result = {
+                    warehouses: warehouses,
+                    nextId: data.nextId || 1
+                };
+                
+                return { success: true, data: JSON.stringify(result) };
             } else {
                 console.log('ℹ️ No warehouses found in Firestore, returning empty array');
                 return { success: true, data: '[]' };
