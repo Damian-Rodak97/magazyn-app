@@ -93,13 +93,18 @@ window.firebaseAuth = {
 window.firebaseDb = {
     // Save all warehouses for current user
     saveWarehouses: async function(warehousesJson) {
+        console.log('🔵 saveWarehouses called');
         try {
             if (!currentUser) {
+                console.error('❌ No user logged in!');
                 return { success: false, error: 'No user logged in' };
             }
 
+            console.log('✅ User logged in:', currentUser.email);
             const warehouses = JSON.parse(warehousesJson);
+            console.log('📦 Warehouses to save:', warehouses);
             const userId = currentUser.uid;
+            console.log('🔑 User ID:', userId);
 
             // Save to user's document
             const userDocRef = doc(db, 'users', userId);
@@ -108,35 +113,43 @@ window.firebaseDb = {
                 lastUpdated: new Date().toISOString()
             });
 
-            console.log('Warehouses saved to Firestore');
+            console.log('✅ Warehouses saved to Firestore successfully!');
             return { success: true };
         } catch (error) {
-            console.error('Save warehouses error:', error);
+            console.error('❌ Save warehouses error:', error);
+            console.error('Error code:', error.code);
+            console.error('Error message:', error.message);
             return { success: false, error: error.message };
         }
     },
 
     // Load all warehouses for current user
     loadWarehouses: async function() {
+        console.log('🔵 loadWarehouses called');
         try {
             if (!currentUser) {
+                console.error('❌ No user logged in!');
                 return { success: false, error: 'No user logged in', data: '[]' };
             }
 
+            console.log('✅ User logged in:', currentUser.email);
             const userId = currentUser.uid;
+            console.log('🔑 User ID:', userId);
             const userDocRef = doc(db, 'users', userId);
             const docSnap = await getDoc(userDocRef);
 
             if (docSnap.exists()) {
                 const data = docSnap.data();
-                console.log('Warehouses loaded from Firestore');
+                console.log('✅ Warehouses loaded from Firestore:', data.warehouses);
                 return { success: true, data: JSON.stringify(data.warehouses || []) };
             } else {
-                console.log('No warehouses found, returning empty array');
+                console.log('ℹ️ No warehouses found in Firestore, returning empty array');
                 return { success: true, data: '[]' };
             }
         } catch (error) {
-            console.error('Load warehouses error:', error);
+            console.error('❌ Load warehouses error:', error);
+            console.error('Error code:', error.code);
+            console.error('Error message:', error.message);
             return { success: false, error: error.message, data: '[]' };
         }
     },
