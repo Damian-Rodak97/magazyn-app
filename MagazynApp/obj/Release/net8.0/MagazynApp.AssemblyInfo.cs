@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MagazynApp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+24368c858cf6c5590e67648ade14de9ca50b4aa9")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9925be3245ecd6228622813b19b543443856f982")]
 [assembly: System.Reflection.AssemblyProductAttribute("MagazynApp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MagazynApp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

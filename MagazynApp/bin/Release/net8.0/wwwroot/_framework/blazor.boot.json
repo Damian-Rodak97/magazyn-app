@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "MagazynApp",
   "resources": {
-    "hash": "sha256-sJpRSPAUWQzNSRpFbS28w/T/EZ5/+yyI85JRCULfb/o=",
+    "hash": "sha256-xztaaG/rh4q/R6NM6EfYA1Sy1x/Ir5rXdp7JrV5EHQs=",
     "jsModuleNative": {
       "dotnet.native.js": "sha256-4g0GzvOXSwZvTLca4PrWJkoeltz+V9IF/hEFDcnVros="
     },
@@ -210,10 +210,10 @@
       "mscorlib.wasm": "sha256-OWQk7msdg0kG9vfJqVNUrPJ8JkyUipH2afbnYJLsKjk=",
       "netstandard.wasm": "sha256-+Ya7AWY6kwjwbQw9fHax9L8Qnn+UZKQF05aZE4ZOXiY=",
       "System.Private.CoreLib.wasm": "sha256-ouVBjy2oz9hC308fAFLns0mvmtyaeUDXt3C5DAk1muc=",
-      "MagazynApp.wasm": "sha256-iO1wvF8xP7xMI3EGfakHpDSrii/NQQ4+Nzgtl3H8uo0="
+      "MagazynApp.wasm": "sha256-m/D7X1IeoQWdvuxOTiPgaSHKTaydncwZylwLMqRxMxU="
     },
     "pdb": {
-      "MagazynApp.pdb": "sha256-1wAkMNU1kgq1d7ngp3QX4NyzDlP9pMHZ0kUDXEEPpR4="
+      "MagazynApp.pdb": "sha256-3bGR2lixIjsfahtp75YN9O09Za5Wg4AIAaa4AUccvpM="
     }
   },
   "cacheBootResources": true,

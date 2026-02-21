@@ -3,10 +3,8 @@
 @inject MagazynApp.Data.BlazorDbService BlazorDb
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
-@implements IDisposable
 
 @code {
-    private DotNetObjectReference<Magazyn>? dotNetHelper;
     private bool isLoading = true;
     
     public class Warehouse
@@ -112,26 +110,6 @@
         {
             EnsureGridSize(warehouse);
         }
-    }
-    
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            dotNetHelper = DotNetObjectReference.Create(this);
-            await JS.InvokeVoidAsync("setupFileImport", dotNetHelper);
-        }
-    }
-    
-    public void Dispose()
-    {
-        dotNetHelper?.Dispose();
-    }
-    
-    [Microsoft.JSInterop.JSInvokable]
-    public async Task HandleFileContent(string content)
-    {
-        await ImportBackup(content);
     }
     
     void EnsureGridSize(Warehouse w)
@@ -394,87 +372,6 @@
             }
         }
     }
-    
-    async Task ExportBackup()
-    {
-        try
-        {
-            var backupData = new 
-            {
-                warehouses = Warehouses,
-                nextId = NextWarehouseId,
-                exportDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                version = "1.0"
-            };
-            
-            var json = System.Text.Json.JsonSerializer.Serialize(backupData, new System.Text.Json.JsonSerializerOptions 
-            { 
-                WriteIndented = true 
-            });
-            
-            var fileName = $"magazyn_backup_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.json";
-            await JS.InvokeVoidAsync("downloadFile", fileName, json);
-        }
-        catch (Exception ex)
-        {
-            await JS.InvokeVoidAsync("alert", $"Błąd podczas tworzenia backupu: {ex.Message}");
-        }
-    }
-    
-    async Task TriggerFileInput()
-    {
-        await JS.InvokeVoidAsync("triggerFileInput");
-    }
-    
-    async Task ImportBackup(string jsonContent)
-    {
-        try
-        {
-            var json = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(jsonContent);
-            
-            if (json.TryGetProperty("warehouses", out var warehousesProp))
-            {
-                var importedWarehouses = System.Text.Json.JsonSerializer.Deserialize<List<Warehouse>>(warehousesProp.GetRawText());
-                
-                if (importedWarehouses != null && importedWarehouses.Count > 0)
-                {
-                    bool confirmed = await JS.InvokeAsync<bool>("confirm", 
-                        $"Znaleziono {importedWarehouses.Count} magazyn(ów) w backupie. Czy zastąpić obecne dane? Ta operacja jest nieodwracalna!");
-                    
-                    if (confirmed)
-                    {
-                        Warehouses = importedWarehouses;
-                        
-                        if (json.TryGetProperty("nextId", out var nextIdProp))
-                        {
-                            NextWarehouseId = nextIdProp.GetInt32();
-                        }
-                        
-                        foreach (var warehouse in Warehouses)
-                        {
-                            EnsureGridSize(warehouse);
-                        }
-                        
-                        await SaveAllWarehouses();
-                        StateHasChanged();
-                        await JS.InvokeVoidAsync("alert", "Backup został pomyślnie zaimportowany!");
-                    }
-                }
-                else
-                {
-                    await JS.InvokeVoidAsync("alert", "Plik backupu jest pusty lub nieprawidłowy.");
-                }
-            }
-            else
-            {
-                await JS.InvokeVoidAsync("alert", "Nieprawidłowy format pliku backupu.");
-            }
-        }
-        catch (Exception ex)
-        {
-            await JS.InvokeVoidAsync("alert", $"Błąd podczas importowania backupu: {ex.Message}");
-        }
-    }
 }
 
 <h3>Siatka magazynowa</h3>
@@ -534,8 +431,6 @@
 <div class="action-buttons mb-3">
     <button class="btn btn-primary" @onclick="AddWarehouse">+ Nowy magazyn</button>
     <button class="btn btn-success" @onclick="GeneratePdf">🖨️ Drukuj</button>
-    <button class="btn btn-info" @onclick="ExportBackup">📥 Backup</button>
-    <button class="btn btn-warning" @onclick="TriggerFileInput">📤 Restore</button>
     <button class="btn btn-danger" @onclick="Logout">🚪 Wyloguj</button>
 </div>
 
