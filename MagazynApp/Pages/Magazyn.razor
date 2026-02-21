@@ -1,0 +1,1037 @@
+@page "/"
+@page "/magazyn"
+@inject MagazynApp.Data.BlazorDbService BlazorDb
+@inject IJSRuntime JS
+@implements IDisposable
+
+@code {
+    private DotNetObjectReference<Magazyn>? dotNetHelper;
+    
+    public class Warehouse
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = "";
+        public int Rows { get; set; } = 10;
+        public int Columns { get; set; } = 10;
+        public List<List<string>> Grid { get; set; } = new();
+        public List<List<bool>> Corridors { get; set; } = new();
+        public List<List<bool>> Taken { get; set; } = new();
+        public List<List<string?>> TakenDates { get; set; } = new();
+    }
+
+    List<Warehouse> Warehouses = new();
+    int NextWarehouseId = 1;
+
+    async Task GeneratePdf()
+    {
+        // QuestPDF nie działa w Blazor WebAssembly, używamy funkcji drukowania przeglądarki
+        await JS.InvokeVoidAsync("window.print");
+    }
+    
+    bool CorridorMode = false;
+    bool TakenMode = false;
+    string SearchText = "";
+    List<FoundItem> FoundItems = new();
+    
+    public class FoundItem
+    {
+        public string WarehouseName { get; set; } = "";
+        public int Row { get; set; }
+        public int Column { get; set; }
+        public string Side { get; set; } = "";
+        public string CellValue { get; set; } = "";
+    }
+    
+    bool IsHighlighted(Warehouse warehouse, int row, int col)
+    {
+        if (string.IsNullOrWhiteSpace(SearchText)) return false;
+        if (warehouse?.Grid == null || row >= warehouse.Grid.Count || col >= warehouse.Grid[row].Count) return false;
+        var cellValue = warehouse.Grid[row][col] ?? "";
+        return cellValue.Equals(SearchText, StringComparison.OrdinalIgnoreCase);
+    }
+    
+    void OnSearchTextChanged()
+    {
+        FoundItems.Clear();
+        
+        if (!string.IsNullOrWhiteSpace(SearchText))
+        {
+            foreach (var warehouse in Warehouses)
+            {
+                for (int r = 0; r < warehouse.Rows; r++)
+                {
+                    for (int c = 0; c < warehouse.Columns; c++)
+                    {
+                        if (IsHighlighted(warehouse, r, c))
+                        {
+                            var side = c < warehouse.Columns / 2 ? "lewa" : "prawa";
+                            FoundItems.Add(new FoundItem
+                            {
+                                WarehouseName = warehouse.Name,
+                                Row = r + 1,
+                                Column = c + 1,
+                                Side = side,
+                                CellValue = warehouse.Grid[r][c] ?? ""
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        StateHasChanged();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAllWarehouses();
+        if (Warehouses.Count == 0)
+        {
+            AddWarehouse();
+        }
+        foreach (var warehouse in Warehouses)
+        {
+            EnsureGridSize(warehouse);
+        }
+    }
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetHelper = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("setupFileImport", dotNetHelper);
+        }
+    }
+    
+    public void Dispose()
+    {
+        dotNetHelper?.Dispose();
+    }
+    
+    [Microsoft.JSInterop.JSInvokable]
+    public async Task HandleFileContent(string content)
+    {
+        await ImportBackup(content);
+    }
+    
+    void EnsureGridSize(Warehouse w)
+    {
+        if (w == null) return;
+        
+        if (w.Grid == null) w.Grid = new();
+        if (w.Corridors == null) w.Corridors = new();
+        if (w.Taken == null) w.Taken = new();
+        if (w.TakenDates == null) w.TakenDates = new();
+            
+        while (w.Grid.Count < w.Rows) w.Grid.Add(new List<string>());
+        while (w.Grid.Count > w.Rows) w.Grid.RemoveAt(w.Grid.Count - 1);
+        while (w.Corridors.Count < w.Rows) w.Corridors.Add(new List<bool>());
+        while (w.Corridors.Count > w.Rows) w.Corridors.RemoveAt(w.Corridors.Count - 1);
+        while (w.Taken.Count < w.Rows) w.Taken.Add(new List<bool>());
+        while (w.Taken.Count > w.Rows) w.Taken.RemoveAt(w.Taken.Count - 1);
+        while (w.TakenDates.Count < w.Rows) w.TakenDates.Add(new List<string?>());
+        while (w.TakenDates.Count > w.Rows) w.TakenDates.RemoveAt(w.TakenDates.Count - 1);
+        
+        for (int r = 0; r < w.Rows; r++)
+        {
+            if (w.Grid[r] == null) w.Grid[r] = new();
+            if (w.Corridors[r] == null) w.Corridors[r] = new();
+            if (w.Taken[r] == null) w.Taken[r] = new();
+            if (w.TakenDates[r] == null) w.TakenDates[r] = new();
+                
+            while (w.Grid[r].Count < w.Columns) w.Grid[r].Add("");
+            while (w.Grid[r].Count > w.Columns) w.Grid[r].RemoveAt(w.Grid[r].Count - 1);
+            while (w.Corridors[r].Count < w.Columns) w.Corridors[r].Add(false);
+            while (w.Corridors[r].Count > w.Columns) w.Corridors[r].RemoveAt(w.Corridors[r].Count - 1);
+            while (w.Taken[r].Count < w.Columns) w.Taken[r].Add(false);
+            while (w.Taken[r].Count > w.Columns) w.Taken[r].RemoveAt(w.Taken[r].Count - 1);
+            while (w.TakenDates[r].Count < w.Columns) w.TakenDates[r].Add(null);
+            while (w.TakenDates[r].Count > w.Columns) w.TakenDates[r].RemoveAt(w.TakenDates[r].Count - 1);
+        }
+    }
+    
+    void AddWarehouse()
+    {
+        var newWarehouse = new Warehouse
+        {
+            Id = NextWarehouseId++,
+            Name = $"Magazyn {NextWarehouseId - 1}",
+            Rows = 10,
+            Columns = 10,
+            Grid = new List<List<string>>(),
+            Corridors = new List<List<bool>>(),
+            Taken = new List<List<bool>>()
+        };
+        Warehouses.Add(newWarehouse);
+        EnsureGridSize(newWarehouse);
+        StateHasChanged();
+    }
+    
+    async Task DeleteWarehouse(int warehouseId)
+    {
+        var warehouse = Warehouses.FirstOrDefault(w => w.Id == warehouseId);
+        if (warehouse != null)
+        {
+            bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Czy na pewno chcesz usunąć magazyn '{warehouse.Name}'?");
+            if (confirmed)
+            {
+                Warehouses.RemoveAll(w => w.Id == warehouseId);
+                await SaveAllWarehouses();
+            }
+        }
+    }
+    
+    void ToggleCorridorMode()
+    {
+        CorridorMode = !CorridorMode;
+        if (CorridorMode) TakenMode = false;
+    }
+    
+    void ToggleTakenMode()
+    {
+        TakenMode = !TakenMode;
+        if (TakenMode) CorridorMode = false;
+    }
+    
+    async Task HandleCellClick(Warehouse warehouse, int row, int col)
+    {
+        if (CorridorMode)
+        {
+            await ToggleCorridor(warehouse, row, col);
+        }
+        else if (TakenMode)
+        {
+            await ToggleTaken(warehouse, row, col);
+        }
+    }
+    
+    async Task HandleInputClick(Warehouse warehouse, int row, int col)
+    {
+        if (CorridorMode)
+        {
+            await ToggleCorridor(warehouse, row, col);
+        }
+        else if (TakenMode)
+        {
+            await ToggleTaken(warehouse, row, col);
+        }
+    }
+    
+    async Task ToggleCorridor(Warehouse warehouse, int row, int col)
+    {
+        if (!CorridorMode) return;
+        if (warehouse == null) return;
+        if (row >= 0 && row < warehouse.Corridors.Count && col >= 0 && col < warehouse.Corridors[row].Count)
+        {
+            warehouse.Corridors[row][col] = !warehouse.Corridors[row][col];
+            if (warehouse.Corridors[row][col])
+            {
+                warehouse.Grid[row][col] = "";
+                warehouse.Taken[row][col] = false;
+            }
+            await SaveGrid();
+        }
+    }
+    
+    async Task ToggleTaken(Warehouse warehouse, int row, int col)
+    {
+        if (!TakenMode) return;
+        if (warehouse == null) return;
+        if (row >= 0 && row < warehouse.Taken.Count && col >= 0 && col < warehouse.Taken[row].Count)
+        {
+            if (warehouse.Corridors != null && row < warehouse.Corridors.Count && col < warehouse.Corridors[row].Count && warehouse.Corridors[row][col])
+                return;
+            
+            // Jeśli komórka jest już zaznaczona jako zabrane, zapytaj o potwierdzenie przed odznaczeniem
+            if (warehouse.Taken[row][col])
+            {
+                var cellValue = warehouse.Grid[row][col] ?? "tę komórkę";
+                var takenDate = warehouse.TakenDates != null && row < warehouse.TakenDates.Count && 
+                               warehouse.TakenDates[row] != null && col < warehouse.TakenDates[row].Count 
+                               ? warehouse.TakenDates[row][col] : null;
+                
+                var message = string.IsNullOrEmpty(takenDate) 
+                    ? $"Czy na pewno chcesz odznaczyć '{cellValue}' jako zabrane?"
+                    : $"Czy na pewno chcesz odznaczyć '{cellValue}' jako zabrane?\n(Zabrano: {takenDate})";
+                
+                bool confirmed = await JS.InvokeAsync<bool>("confirm", message);
+                if (!confirmed)
+                {
+                    return;
+                }
+            }
+                
+            warehouse.Taken[row][col] = !warehouse.Taken[row][col];
+            
+            // Zapisz datę kiedy zostało zabrane lub wyczyść jeśli odznaczamy
+            if (warehouse.Taken[row][col])
+            {
+                warehouse.TakenDates[row][col] = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+            }
+            else
+            {
+                warehouse.TakenDates[row][col] = null;
+            }
+            
+            await SaveGrid();
+        }
+    }
+
+    async Task OnRowsChanged(Warehouse warehouse, string? value)
+    {
+        if (warehouse == null) return;
+        if (int.TryParse(value, out var newRows) && newRows > 0 && newRows <= 50)
+        {
+            if (newRows != warehouse.Rows)
+            {
+                bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Czy na pewno chcesz zmienić liczbę wierszy z {warehouse.Rows} na {newRows}? Może to spowodować utratę danych.");
+                if (confirmed)
+                {
+                    warehouse.Rows = newRows;
+                    EnsureGridSize(warehouse);
+                    await SaveGrid();
+                }
+                else
+                {
+                    StateHasChanged();
+                }
+            }
+        }
+        else
+        {
+            StateHasChanged();
+        }
+    }
+
+    async Task OnColumnsChanged(Warehouse warehouse, string? value)
+    {
+        if (warehouse == null) return;
+        if (int.TryParse(value, out var newCols) && newCols > 0 && newCols <= 50)
+        {
+            if (newCols != warehouse.Columns)
+            {
+                bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Czy na pewno chcesz zmienić liczbę kolumn z {warehouse.Columns} na {newCols}? Może to spowodować utratę danych.");
+                if (confirmed)
+                {
+                    warehouse.Columns = newCols;
+                    EnsureGridSize(warehouse);
+                    await SaveGrid();
+                }
+                else
+                {
+                    StateHasChanged();
+                }
+            }
+        }
+        else
+        {
+            StateHasChanged();
+        }
+    }
+
+    async Task SaveGrid()
+    {
+        await SaveAllWarehouses();
+    }
+    
+    async Task SaveAllWarehouses()
+    {
+        var json = System.Text.Json.JsonSerializer.Serialize(new { warehouses = Warehouses, nextId = NextWarehouseId });
+        await BlazorDb.PutWarehousesAsync(json);
+    }
+    
+   async Task LoadAllWarehouses()
+    {
+        var jsonString = await BlazorDb.GetWarehousesAsync();
+        if (!string.IsNullOrEmpty(jsonString))
+        {
+            try
+            {
+                var json = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(jsonString);
+                if (json.TryGetProperty("warehouses", out var warehousesProp))
+                {
+                    Warehouses = System.Text.Json.JsonSerializer.Deserialize<List<Warehouse>>(warehousesProp.GetRawText()) ?? new();
+                }
+                if (json.TryGetProperty("nextId", out var nextIdProp))
+                {
+                    NextWarehouseId = nextIdProp.GetInt32();
+                }
+            }
+            catch
+            {
+                // If deserialization fails, we'll create a new warehouse
+            }
+        }
+    }
+    
+    async Task ExportBackup()
+    {
+        try
+        {
+            var backupData = new 
+            {
+                warehouses = Warehouses,
+                nextId = NextWarehouseId,
+                exportDate = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                version = "1.0"
+            };
+            
+            var json = System.Text.Json.JsonSerializer.Serialize(backupData, new System.Text.Json.JsonSerializerOptions 
+            { 
+                WriteIndented = true 
+            });
+            
+            var fileName = $"magazyn_backup_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.json";
+            await JS.InvokeVoidAsync("downloadFile", fileName, json);
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Błąd podczas tworzenia backupu: {ex.Message}");
+        }
+    }
+    
+    async Task TriggerFileInput()
+    {
+        await JS.InvokeVoidAsync("triggerFileInput");
+    }
+    
+    async Task ImportBackup(string jsonContent)
+    {
+        try
+        {
+            var json = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(jsonContent);
+            
+            if (json.TryGetProperty("warehouses", out var warehousesProp))
+            {
+                var importedWarehouses = System.Text.Json.JsonSerializer.Deserialize<List<Warehouse>>(warehousesProp.GetRawText());
+                
+                if (importedWarehouses != null && importedWarehouses.Count > 0)
+                {
+                    bool confirmed = await JS.InvokeAsync<bool>("confirm", 
+                        $"Znaleziono {importedWarehouses.Count} magazyn(ów) w backupie. Czy zastąpić obecne dane? Ta operacja jest nieodwracalna!");
+                    
+                    if (confirmed)
+                    {
+                        Warehouses = importedWarehouses;
+                        
+                        if (json.TryGetProperty("nextId", out var nextIdProp))
+                        {
+                            NextWarehouseId = nextIdProp.GetInt32();
+                        }
+                        
+                        foreach (var warehouse in Warehouses)
+                        {
+                            EnsureGridSize(warehouse);
+                        }
+                        
+                        await SaveAllWarehouses();
+                        StateHasChanged();
+                        await JS.InvokeVoidAsync("alert", "Backup został pomyślnie zaimportowany!");
+                    }
+                }
+                else
+                {
+                    await JS.InvokeVoidAsync("alert", "Plik backupu jest pusty lub nieprawidłowy.");
+                }
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("alert", "Nieprawidłowy format pliku backupu.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Błąd podczas importowania backupu: {ex.Message}");
+        }
+    }
+}
+
+<h3>Siatka magazynowa</h3>
+
+<div class="controls-section mb-3">
+    <div class="control-group">
+        <button class="btn btn-sm btn-secondary" @onclick="ToggleCorridorMode">
+            @(CorridorMode ? "Korytarz: ON" : "Korytarz: OFF")
+        </button>
+        @if (CorridorMode)
+        {
+            <small class="text-muted hint-text">Kliknij komórkę aby oznaczyć jako korytarz</small>
+        }
+    </div>
+    <div class="control-group">
+        <button class="btn btn-sm btn-warning" @onclick="ToggleTakenMode">
+            @(TakenMode ? "Zabrane: ON" : "Zabrane: OFF")
+        </button>
+        @if (TakenMode)
+        {
+            <small class="text-muted hint-text">Kliknij komórkę aby oznaczyć jako zabrane</small>
+        }
+    </div>
+</div>
+
+<div class="search-section mb-3">
+    <label class="search-label">Szukaj:
+        <input type="text" class="search-input" @bind="SearchText" @bind:event="oninput" @bind:after="OnSearchTextChanged" placeholder="np. A103" />
+    </label>
+    
+    @if (FoundItems.Count > 0)
+    {
+        <div class="found-items-container">
+            <div class="found-items-header">
+                <strong>Znaleziono (@FoundItems.Count):</strong>
+            </div>
+            @foreach (var item in FoundItems)
+            {
+                <div class="found-item">
+                    <span class="warehouse-name">🏭 @item.WarehouseName</span>
+                    <span class="item-position">
+                        <span class="side-badge side-@item.Side">@item.Side strona</span>
+                        <span class="text-muted">| Wiersz: @item.Row, Kolumna: @item.Column</span>
+                    </span>
+                </div>
+            }
+        </div>
+    }
+    else if (!string.IsNullOrWhiteSpace(SearchText))
+    {
+        <div class="no-results">
+            🔍 Nie znaleziono: "@SearchText"
+        </div>
+    }
+</div>
+
+<div class="action-buttons mb-3">
+    <button class="btn btn-primary" @onclick="AddWarehouse">+ Nowy magazyn</button>
+    <button class="btn btn-success" @onclick="GeneratePdf">🖨️ Drukuj</button>
+    <button class="btn btn-info" @onclick="ExportBackup">📥 Backup</button>
+    <button class="btn btn-warning" @onclick="TriggerFileInput">📤 Restore</button>
+</div>
+
+@if (Warehouses.Count == 0)
+{
+    <div class="alert alert-info">
+        Kliknij "+ Nowy magazyn" aby utworzyć pierwszy magazyn.
+    </div>
+}
+
+<style>
+    .stack-group td {
+        border-bottom: 3px solid #000 !important;
+    }
+    .stack-group td.corridor-cell {
+        border-bottom: none !important;
+    }
+    table td, table th {
+        border-right: 3px solid #000 !important;
+        border-bottom: 1px solid #000 !important;
+    }
+    .corridor-cell {
+        background-color: #dee2e6 !important;
+        cursor: pointer;
+        text-align: center;
+        vertical-align: middle;
+        border-top: none !important;
+        border-bottom: none !important;
+    }
+    .corridor-cell input {
+        display: none;
+    }
+    table td {
+        padding: 0 !important;
+        margin: 0;
+        height: 40px;
+        min-height: 40px;
+        vertical-align: top;
+    }
+    table td input {
+        width: 100%;
+        height: 100%;
+        min-height: 40px;
+        border: none !important;
+        padding: 8px 12px;
+        margin: 0;
+        box-sizing: border-box;
+        background-color: transparent;
+        outline: none;
+        font-size: 14px;
+        font-family: inherit;
+        transition: background-color 0.15s ease-in-out;
+    }
+    table td input:focus {
+        outline: 2px solid #0d6efd !important;
+        outline-offset: -2px;
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+    table td input:hover:not([readonly]):not(:disabled) {
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+    table td input[readonly] {
+        cursor: pointer;
+    }
+    table td input[disabled] {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+    .highlight-cell {
+        background-color: #ffeb3b !important;
+        font-weight: 600 !important;
+        color: #000 !important;
+        box-shadow: 0 0 0 3px rgba(255, 235, 59, 0.5) !important;
+    }
+    .highlight-cell input {
+        background-color: #ffeb3b !important;
+        font-weight: 600 !important;
+        color: #000 !important;
+    }
+    .taken-cell {
+        background-color: #c8e6c9 !important;
+        cursor: pointer;
+    }
+    .taken-cell input {
+        background-color: #c8e6c9 !important;
+        cursor: pointer;
+        font-weight: 500;
+    }
+    /* Komórka która jest jednocześnie zabrana i znaleziona w wyszukiwaniu */
+    .taken-cell.highlight-cell {
+        background: linear-gradient(135deg, #ffeb3b 0%, #ffeb3b 50%, #c8e6c9 50%, #c8e6c9 100%) !important;
+        box-shadow: 0 0 0 3px rgba(255, 235, 59, 0.7) !important;
+    }
+    .taken-cell.highlight-cell input {
+        background: linear-gradient(135deg, #ffeb3b 0%, #ffeb3b 50%, #c8e6c9 50%, #c8e6c9 100%) !important;
+        font-weight: 600 !important;
+        color: #000 !important;
+    }
+    .taken-cell-content {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+    }
+    .taken-cell-content input {
+        height: auto !important;
+        min-height: 30px !important;
+        flex: 0 0 auto;
+    }
+    .taken-date {
+        display: block;
+        font-size: 10px;
+        color: #2e7d32;
+        padding: 2px 8px;
+        margin-top: -3px;
+        text-align: center;
+        background-color: rgba(46, 125, 50, 0.1);
+    }
+    .warehouse-section {
+        border: 2px solid #ddd;
+        padding: 15px;
+        margin-bottom: 30px;
+        border-radius: 5px;
+        background-color: #f8f9fa;
+    }
+    .warehouse-header {
+        margin-bottom: 15px;
+    }
+    .warehouse-name-input {
+        font-size: 1.5rem;
+        font-weight: 500;
+        border: 1px solid #ced4da;
+        width: 100%;
+    }
+    .warehouse-name-input:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    .controls-section {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+    }
+    .control-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .search-label {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .search-input {
+        width: 150px;
+        padding: 5px 10px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+    }
+    .found-items-container {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    .found-items-header {
+        margin-bottom: 8px;
+        color: #495057;
+        font-size: 0.9rem;
+    }
+    .found-item {
+        padding: 6px 8px;
+        margin-bottom: 5px;
+        background-color: white;
+        border-left: 3px solid #ffeb3b;
+        border-radius: 3px;
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .warehouse-name {
+        font-weight: 500;
+        color: #212529;
+    }
+    .item-position {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        font-size: 0.85rem;
+    }
+    .side-badge {
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+    .side-lewa {
+        background-color: #cfe2ff;
+        color: #084298;
+    }
+    .side-prawa {
+        background-color: #f8d7da;
+        color: #842029;
+    }
+    .no-results {
+        margin-top: 10px;
+        padding: 8px 12px;
+        background-color: #fff3cd;
+        border: 1px solid #ffe69c;
+        border-radius: 4px;
+        color: #664d03;
+        font-size: 0.9rem;
+    }
+    .action-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .search-section {
+        display: block;
+    }
+    .hint-text {
+        display: inline;
+    }
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 15px;
+    }
+    .grid-size-controls {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    .grid-size-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+    }
+    .grid-size-input {
+        width: 80px;
+        padding: 5px 8px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+    }
+    
+    /* Tabela bez bootstrap styling */
+    table.table-bordered {
+        border-collapse: collapse;
+        width: 100%;
+    }
+    table.table-bordered td {
+        border: 1px solid #000;
+    }
+
+    /* Style do drukowania */
+    @@media print {
+        .btn, .mb-3:not(.warehouse-section), .alert, h3 {
+            display: none !important;
+        }
+        
+        .warehouse-section {
+            page-break-after: always;
+            border: none;
+            background-color: white !important;
+            padding: 0;
+        }
+        
+        .warehouse-name-input {
+            border: none;
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: white;
+        }
+        
+        table {
+            page-break-inside: avoid;
+        }
+        
+        table td input {
+            border: 1px solid #000 !important;
+        }
+        
+        .corridor-cell {
+            background-color: #dee2e6 !important;
+            border-top: none !important;
+            border-bottom: none !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        
+        .stack-group td.corridor-cell {
+            border-bottom: none !important;
+        }
+        
+        .taken-cell, .taken-cell input {
+            background-color: #c8e6c9 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        
+        .taken-date {
+            background-color: rgba(46, 125, 50, 0.2) !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        
+        .highlight-cell {
+            background-color: #ffeb3b !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            box-shadow: none !important;
+        }
+        
+        .taken-cell.highlight-cell, .taken-cell.highlight-cell input {
+            background: linear-gradient(135deg, #ffeb3b 0%, #ffeb3b 50%, #c8e6c9 50%, #c8e6c9 100%) !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+    }
+
+    /* Mobile responsive styles */
+    @@media (max-width: 768px) {
+        h3 {
+            font-size: 1.5rem;
+        }
+        
+        .controls-section {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .control-group {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .hint-text {
+            display: block;
+            margin-top: 5px;
+        }
+        
+        .search-section {
+            width: 100%;
+        }
+        
+        .search-label {
+            flex-direction: column;
+            align-items: flex-start;
+            width: 100%;
+        }
+        
+        .search-input {
+            width: 100%;
+        }
+        
+        .found-item {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .item-position {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+        }
+        
+        .grid-size-controls {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+        }
+        
+        .grid-size-label {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+        
+        .grid-size-input {
+            width: 100%;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+        }
+        
+        .action-buttons .btn {
+            width: 100%;
+            margin: 0 !important;
+        }
+        
+        .warehouse-section {
+            padding: 10px;
+        }
+        
+        .warehouse-name-input {
+            font-size: 1.2rem;
+        }
+        
+        table td {
+            min-width: 80px;
+            height: 50px;
+            min-height: 50px;
+        }
+        
+        table td input {
+            min-height: 45px;
+            font-size: 16px;
+            padding: 10px 8px;
+        }
+        
+        .taken-date {
+            font-size: 9px;
+        }
+    }
+    
+    @@media (max-width: 480px) {
+        h3 {
+            font-size: 1.25rem;
+        }
+        
+        .btn-sm {
+            font-size: 0.9rem;
+            padding: 6px 12px;
+        }
+        
+        table td {
+            min-width: 70px;
+            height: 55px;
+            min-height: 55px;
+        }
+        
+        table td input {
+            min-height: 50px;
+            font-size: 16px;
+        }
+        
+        .taken-date {
+            font-size: 9px;
+        }
+        
+        .warehouse-name-input {
+            font-size: 1.1rem;
+        }
+    }
+</style>
+
+@foreach (var warehouse in Warehouses)
+{
+    <div class="warehouse-section">
+        <div class="warehouse-header">
+            <input type="text" class="form-control warehouse-name-input" @bind="warehouse.Name" @bind:after="@SaveGrid" placeholder="Nazwa magazynu" />
+        </div>
+        
+        <div class="mb-3 grid-size-controls">
+            <label class="grid-size-label">Liczba wierszy:
+                <input type="number" min="1" max="50" class="grid-size-input" value="@warehouse.Rows" @onchange="async (e) => await OnRowsChanged(warehouse, e.Value?.ToString())" />
+            </label>
+            <label class="grid-size-label">Liczba kolumn:
+                <input type="number" min="1" max="50" class="grid-size-input" value="@warehouse.Columns" @onchange="async (e) => await OnColumnsChanged(warehouse, e.Value?.ToString())" />
+            </label>
+        </div>
+
+        @if (warehouse.Grid != null && warehouse.Grid.Count > 0)
+        {
+            <div class="table-container">
+            <table class="table table-bordered">
+                <tbody>
+                    @for (int row = 0; row < warehouse.Rows; row++)
+                    {
+                        var r = row;
+                        bool isStackEnd = (r + 1) % 3 == 0;
+                        <tr class="@(isStackEnd ? "stack-group" : "")">
+                            @for (int col = 0; col < warehouse.Columns; col++)
+                            {
+                                var c = col;
+                                var hasData = warehouse.Grid != null && r < warehouse.Grid.Count && warehouse.Grid[r] != null && c < warehouse.Grid[r].Count;
+                                bool isCorridor = warehouse.Corridors != null && r < warehouse.Corridors.Count && warehouse.Corridors[r] != null && c < warehouse.Corridors[r].Count && warehouse.Corridors[r][c];
+                                bool isTaken = warehouse.Taken != null && r < warehouse.Taken.Count && warehouse.Taken[r] != null && c < warehouse.Taken[r].Count && warehouse.Taken[r][c];
+                                bool isHighlighted = hasData && IsHighlighted(warehouse, r, c);
+                                string cellClass = (isCorridor ? "corridor-cell " : "") + (isTaken ? "taken-cell " : "") + (isHighlighted ? "highlight-cell" : "");
+                                var cellValue = hasData ? (warehouse.Grid![r]![c] ?? "") : "";
+                                var takenDate = isTaken && warehouse.TakenDates != null && r < warehouse.TakenDates.Count && warehouse.TakenDates[r] != null && c < warehouse.TakenDates[r].Count ? warehouse.TakenDates[r][c] : null;
+                                
+                                <td class="@cellClass" @onclick="@(async () => await HandleCellClick(warehouse, r, c))" title="@(isTaken && !string.IsNullOrEmpty(takenDate) ? $"Zabrane: {takenDate}" : "")">
+                                    @if (!isCorridor)
+                                    {
+                                        @if (isTaken)
+                                        {
+                                            <div class="taken-cell-content">
+                                                <input class="form-control" value="@cellValue" @onclick="@(async () => await HandleInputClick(warehouse, r, c))" @onclick:stopPropagation readonly />
+                                                @if (!string.IsNullOrEmpty(takenDate))
+                                                {
+                                                    <small class="taken-date">@takenDate</small>
+                                                }
+                                            </div>
+                                        }
+                                        else if (hasData)
+                                        {
+                                            <input class="form-control" @bind="warehouse.Grid![r]![c]" @bind:after="@SaveGrid" @onclick="@(async () => await HandleInputClick(warehouse, r, c))" @onclick:stopPropagation />
+                                        }
+                                        else
+                                        {
+                                            <input class="form-control" value="" @onclick="@(async () => await HandleInputClick(warehouse, r, c))" @onclick:stopPropagation />
+                                        }
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            </div>
+        }
+        
+        <div class="text-end mt-2">
+            <button class="btn btn-sm btn-danger" @onclick="@(() => DeleteWarehouse(warehouse.Id))">Usuń magazyn</button>
+        </div>
+    </div>
+}
