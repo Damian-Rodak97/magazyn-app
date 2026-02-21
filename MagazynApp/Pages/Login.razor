@@ -14,8 +14,8 @@
         }
         
         <div class="mb-3">
-            <label class="form-label">Login:</label>
-            <input type="text" class="form-control" @bind="username" @bind:event="oninput" @onkeypress="HandleKeyPress" placeholder="Wpisz login" />
+            <label class="form-label">Email:</label>
+            <input type="email" class="form-control" @bind="email" @bind:event="oninput" @onkeypress="HandleKeyPress" placeholder="Wpisz email" />
         </div>
         
         <div class="mb-3">
@@ -23,7 +23,16 @@
             <input type="password" class="form-control" @bind="password" @bind:event="oninput" @onkeypress="HandleKeyPress" placeholder="Wpisz hasło" />
         </div>
         
-        <button class="btn btn-primary w-100" @onclick="HandleLogin">Zaloguj się</button>
+        <button class="btn btn-primary w-100" @onclick="HandleLogin" disabled="@isLoading">
+            @if (isLoading)
+            {
+                <span>Logowanie...</span>
+            }
+            else
+            {
+                <span>Zaloguj się</span>
+            }
+        </button>
     </div>
 </div>
 
@@ -64,21 +73,32 @@
 </style>
 
 @code {
-    private string username = "";
+    private string email = "";
     private string password = "";
     private string errorMessage = "";
+    private bool isLoading = false;
     
-    // Zahaszowane hasło SHA256 dla "TRmagazyn123!"
-    private const string HASHED_PASSWORD = "e5d9052c4f1e0599fd3eb948e78b6a79ffd53540880731115a57a89faf89e146";
-    private const string VALID_USERNAME = "Tomasz";
+    private class FirebaseAuthResult
+    {
+        public bool success { get; set; }
+        public string? user { get; set; }
+        public string? error { get; set; }
+    }
     
     protected override async Task OnInitializedAsync()
     {
-        // Sprawdź czy już zalogowany
-        var isLogged = await JS.InvokeAsync<string>("localStorage.getItem", "isLoggedIn");
-        if (isLogged == "true")
+        // Sprawdź czy już zalogowany przez Firebase
+        try
         {
-            Navigation.NavigateTo("./");
+            var isLoggedIn = await JS.InvokeAsync<bool>("firebaseAuth.isLoggedIn");
+            if (isLoggedIn)
+            {
+                Navigation.NavigateTo("./");
+            }
+        }
+        catch
+        {
+            // Firebase może się jeszcze nie załadować
         }
     }
     
@@ -86,44 +106,61 @@
     {
         errorMessage = "";
         
-        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
         {
             errorMessage = "Wypełnij wszystkie pola!";
             return;
         }
         
-        // Sprawdź login
-        if (username.Trim() != VALID_USERNAME)
+        isLoading = true;
+        StateHasChanged();
+        
+        try
         {
-            errorMessage = "Nieprawidłowy login lub hasło!";
-            await Task.Delay(1000); // Opóźnienie dla bezpieczeństwa
-            return;
+            // Zaloguj przez Firebase Authentication
+            var result = await JS.InvokeAsync<FirebaseAuthResult>("firebaseAuth.signIn", email, password);
+            
+            if (result.success)
+            {
+                // Sukces - przekieruj do głównej strony
+                Navigation.NavigateTo("./");
+            }
+            else
+            {
+                // Błąd logowania
+                if (result.error?.Contains("invalid-credential") == true || 
+                    result.error?.Contains("user-not-found") == true ||
+                    result.error?.Contains("wrong-password") == true)
+                {
+                    errorMessage = "Nieprawidłowy email lub hasło!";
+                }
+                else if (result.error?.Contains("too-many-requests") == true)
+                {
+                    errorMessage = "Zbyt wiele prób logowania. Spróbuj później.";
+                }
+                else
+                {
+                    errorMessage = "Błąd logowania. Spróbuj ponownie.";
+                }
+                
+                await Task.Delay(1000); // Opóźnienie dla bezpieczeństwa
+            }
         }
-        
-        // Zahaszuj wprowadzone hasło i porównaj
-        var hashedInput = await HashPassword(password);
-        
-        if (hashedInput != HASHED_PASSWORD)
+        catch (Exception ex)
         {
-            errorMessage = "Nieprawidłowy login lub hasło!";
-            await Task.Delay(1000);
-            return;
+            errorMessage = "Błąd połączenia. Sprawdź internet.";
+            Console.WriteLine($"Login error: {ex.Message}");
         }
-        
-        // Zalogowano pomyślnie
-        await JS.InvokeVoidAsync("localStorage.setItem", "isLoggedIn", "true");
-        Navigation.NavigateTo("./");
-    }
-    
-    private async Task<string> HashPassword(string input)
-    {
-        // Użyj SubtleCrypto API do hashowania
-        return await JS.InvokeAsync<string>("hashPassword", input);
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
     }
     
     private async Task HandleKeyPress(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter")
+        if (e.Key == "Enter" && !isLoading)
         {
             await HandleLogin();
         }

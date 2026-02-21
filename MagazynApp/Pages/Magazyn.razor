@@ -85,10 +85,19 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Sprawdź czy użytkownik jest zalogowany
-        var isLoggedIn = await JS.InvokeAsync<string>("localStorage.getItem", "isLoggedIn");
-        if (isLoggedIn != "true")
+        // Sprawdź czy użytkownik jest zalogowany przez Firebase
+        try
         {
+            var isLoggedIn = await JS.InvokeAsync<bool>("firebaseAuth.isLoggedIn");
+            if (!isLoggedIn)
+            {
+                Navigation.NavigateTo("login");
+                return;
+            }
+        }
+        catch
+        {
+            // Firebase może się jeszcze nie załadować
             Navigation.NavigateTo("login");
             return;
         }
@@ -183,7 +192,7 @@
         bool confirmed = await JS.InvokeAsync<bool>("confirm", "Czy na pewno chcesz się wylogować?");
         if (confirmed)
         {
-            await JS.InvokeVoidAsync("localStorage.removeItem", "isLoggedIn");
+            await JS.InvokeVoidAsync("firebaseAuth.signOut");
             Navigation.NavigateTo("login");
         }
     }
