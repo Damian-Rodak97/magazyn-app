@@ -15,12 +15,12 @@
         
         <div class="mb-3">
             <label class="form-label">Login:</label>
-            <input type="text" class="form-control" @bind="username" @onkeypress="HandleKeyPress" placeholder="Wpisz login" />
+            <input type="text" class="form-control" @bind="username" @bind:event="oninput" @onkeypress="HandleKeyPress" placeholder="Wpisz login" />
         </div>
         
         <div class="mb-3">
             <label class="form-label">Hasło:</label>
-            <input type="password" class="form-control" @bind="password" @onkeypress="HandleKeyPress" placeholder="Wpisz hasło" />
+            <input type="password" class="form-control" @bind="password" @bind:event="oninput" @onkeypress="HandleKeyPress" placeholder="Wpisz hasło" />
         </div>
         
         <button class="btn btn-primary w-100" @onclick="HandleLogin">Zaloguj się</button>
