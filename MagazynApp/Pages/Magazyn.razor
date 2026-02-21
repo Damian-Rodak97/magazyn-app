@@ -2,10 +2,12 @@
 @page "/magazyn"
 @inject MagazynApp.Data.BlazorDbService BlazorDb
 @inject IJSRuntime JS
+@inject NavigationManager Navigation
 @implements IDisposable
 
 @code {
     private DotNetObjectReference<Magazyn>? dotNetHelper;
+    private bool isLoading = true;
     
     public class Warehouse
     {
@@ -83,6 +85,15 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Sprawdź czy użytkownik jest zalogowany
+        var isLoggedIn = await JS.InvokeAsync<string>("localStorage.getItem", "isLoggedIn");
+        if (isLoggedIn != "true")
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+        
+        isLoading = false;
         await LoadAllWarehouses();
         if (Warehouses.Count == 0)
         {
@@ -165,6 +176,16 @@
         Warehouses.Add(newWarehouse);
         EnsureGridSize(newWarehouse);
         StateHasChanged();
+    }
+    
+    async Task Logout()
+    {
+        bool confirmed = await JS.InvokeAsync<bool>("confirm", "Czy na pewno chcesz się wylogować?");
+        if (confirmed)
+        {
+            await JS.InvokeVoidAsync("localStorage.removeItem", "isLoggedIn");
+            Navigation.NavigateTo("/login");
+        }
     }
     
     async Task DeleteWarehouse(int warehouseId)
@@ -505,6 +526,7 @@
     <button class="btn btn-success" @onclick="GeneratePdf">🖨️ Drukuj</button>
     <button class="btn btn-info" @onclick="ExportBackup">📥 Backup</button>
     <button class="btn btn-warning" @onclick="TriggerFileInput">📤 Restore</button>
+    <button class="btn btn-danger" @onclick="Logout">🚪 Wyloguj</button>
 </div>
 
 @if (Warehouses.Count == 0)

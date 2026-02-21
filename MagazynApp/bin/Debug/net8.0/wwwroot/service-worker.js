@@ -1,4 +1,4 @@
-/* Manifest version: w2GFPlAX */
+/* Manifest version: 2QHE37w6 */
 // In development, always fetch from the network and do not enable offline support.
 // This is because caching would make development more difficult (changes would not
 // be reflected on the first load after each change).

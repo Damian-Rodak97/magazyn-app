@@ -1,0 +1,131 @@
+@page "/login"
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+<div class="login-container">
+    <div class="login-box">
+        <h3>🔒 Logowanie do Magazynu</h3>
+        
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">
+                @errorMessage
+            </div>
+        }
+        
+        <div class="mb-3">
+            <label class="form-label">Login:</label>
+            <input type="text" class="form-control" @bind="username" @onkeypress="HandleKeyPress" placeholder="Wpisz login" />
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label">Hasło:</label>
+            <input type="password" class="form-control" @bind="password" @onkeypress="HandleKeyPress" placeholder="Wpisz hasło" />
+        </div>
+        
+        <button class="btn btn-primary w-100" @onclick="HandleLogin">Zaloguj się</button>
+    </div>
+</div>
+
+<style>
+    .login-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .login-box {
+        background: white;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        width: 100%;
+        max-width: 400px;
+    }
+    
+    .login-box h3 {
+        text-align: center;
+        margin-bottom: 30px;
+        color: #333;
+    }
+    
+    .login-box .form-label {
+        font-weight: 500;
+        color: #555;
+    }
+    
+    .login-box .btn {
+        margin-top: 10px;
+        padding: 12px;
+        font-size: 1.1rem;
+    }
+</style>
+
+@code {
+    private string username = "";
+    private string password = "";
+    private string errorMessage = "";
+    
+    // Zahaszowane hasło SHA256 dla "TRmagazyn123!"
+    private const string HASHED_PASSWORD = "e5d9052c4f1e0599fd3eb948e78b6a79ffd53540880731115a57a89faf89e146";
+    private const string VALID_USERNAME = "Tomasz";
+    
+    protected override async Task OnInitializedAsync()
+    {
+        // Sprawdź czy już zalogowany
+        var isLogged = await JS.InvokeAsync<string>("localStorage.getItem", "isLoggedIn");
+        if (isLogged == "true")
+        {
+            Navigation.NavigateTo("/");
+        }
+    }
+    
+    private async Task HandleLogin()
+    {
+        errorMessage = "";
+        
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+        {
+            errorMessage = "Wypełnij wszystkie pola!";
+            return;
+        }
+        
+        // Sprawdź login
+        if (username.Trim() != VALID_USERNAME)
+        {
+            errorMessage = "Nieprawidłowy login lub hasło!";
+            await Task.Delay(1000); // Opóźnienie dla bezpieczeństwa
+            return;
+        }
+        
+        // Zahaszuj wprowadzone hasło i porównaj
+        var hashedInput = await HashPassword(password);
+        
+        if (hashedInput != HASHED_PASSWORD)
+        {
+            errorMessage = "Nieprawidłowy login lub hasło!";
+            await Task.Delay(1000);
+            return;
+        }
+        
+        // Zalogowano pomyślnie
+        await JS.InvokeVoidAsync("localStorage.setItem", "isLoggedIn", "true");
+        Navigation.NavigateTo("/");
+    }
+    
+    private async Task<string> HashPassword(string input)
+    {
+        // Użyj SubtleCrypto API do hashowania
+        return await JS.InvokeAsync<string>("hashPassword", input);
+    }
+    
+    private async Task HandleKeyPress(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleLogin();
+        }
+    }
+}

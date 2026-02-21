@@ -1,0 +1,24 @@
+# Blazor
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.cache
+*.DotSettings
+
+# Pliki z hasłami - NIE WYSYŁAJ DO REPO!
+HASLO_INSTRUKCJE.md
+
+# Build output
+publish/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
