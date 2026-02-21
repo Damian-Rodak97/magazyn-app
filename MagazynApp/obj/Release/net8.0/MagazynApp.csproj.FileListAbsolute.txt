@@ -1051,9 +1051,6 @@ C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\compressed\6iz5avl
 C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\compressed\tf8bhxrfw8-{0}-tptq2av103-tptq2av103.gz
 C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\compressed\nkpxssxgla-{0}-lfu7j35m59-lfu7j35m59.gz
 C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\compressed\d6eybdcqte-{0}-oyz0vx2fzb-oyz0vx2fzb.gz
-C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\compressed\il5zes5gtn-{0}-5a9ei6nnva-5a9ei6nnva.gz
-C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\compressed\04syjo7412-{0}-l15euhxxlo-l15euhxxlo.gz
-C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\compressed\cfvq9y1s9h-{0}-wfqaqytw2r-wfqaqytw2r.gz
 C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\staticwebassets.build.json
 C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\staticwebassets.build.json.cache
 C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\staticwebassets.development.json
@@ -1064,3 +1061,7 @@ C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\MagazynApp.dll
 C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\refint\MagazynApp.dll
 C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\MagazynApp.pdb
 C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\ref\MagazynApp.dll
+C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\MagazynApp.sourcelink.json
+C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\compressed\il5zes5gtn-{0}-s0znx0tchv-s0znx0tchv.gz
+C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\compressed\04syjo7412-{0}-ioiwydrn05-ioiwydrn05.gz
+C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\compressed\cfvq9y1s9h-{0}-7uy23xq4np-7uy23xq4np.gz
