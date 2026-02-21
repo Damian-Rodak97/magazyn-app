@@ -42,12 +42,23 @@
         public string CellValue { get; set; } = "";
     }
     
+    public class FirebaseAuthResult
+    {
+        public bool success { get; set; }
+        public string? error { get; set; }
+    }
+    
     bool IsHighlighted(Warehouse warehouse, int row, int col)
     {
         if (string.IsNullOrWhiteSpace(SearchText)) return false;
         if (warehouse?.Grid == null || row >= warehouse.Grid.Count || col >= warehouse.Grid[row].Count) return false;
         var cellValue = warehouse.Grid[row][col] ?? "";
-        return cellValue.Equals(SearchText, StringComparison.OrdinalIgnoreCase);
+        
+        // Usuń wszystkie spacje przed porównaniem
+        var cellValueNoSpaces = cellValue.Replace(" ", "");
+        var searchTextNoSpaces = SearchText.Replace(" ", "");
+        
+        return cellValueNoSpaces.Equals(searchTextNoSpaces, StringComparison.OrdinalIgnoreCase);
     }
     
     void OnSearchTextChanged()
@@ -184,8 +195,20 @@
             bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Czy na pewno chcesz usunąć magazyn '{warehouse.Name}'?");
             if (confirmed)
             {
-                Warehouses.RemoveAll(w => w.Id == warehouseId);
-                await SaveAllWarehouses();
+                var password = await JS.InvokeAsync<string>("prompt", "Wprowadź hasło aby potwierdzić usunięcie:");
+                if (!string.IsNullOrEmpty(password))
+                {
+                    var result = await JS.InvokeAsync<FirebaseAuthResult>("firebaseAuth.reauthenticate", password);
+                    if (result.success)
+                    {
+                        Warehouses.RemoveAll(w => w.Id == warehouseId);
+                        await SaveAllWarehouses();
+                    }
+                    else
+                    {
+                        await JS.InvokeVoidAsync("alert", $"Nieprawidłowe hasło. Operacja anulowana.");
+                    }
+                }
             }
         }
     }
@@ -296,9 +319,26 @@
                 bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Czy na pewno chcesz zmienić liczbę wierszy z {warehouse.Rows} na {newRows}? Może to spowodować utratę danych.");
                 if (confirmed)
                 {
-                    warehouse.Rows = newRows;
-                    EnsureGridSize(warehouse);
-                    await SaveGrid();
+                    var password = await JS.InvokeAsync<string>("prompt", "Wprowadź hasło aby potwierdzić zmianę rozmiaru:");
+                    if (!string.IsNullOrEmpty(password))
+                    {
+                        var result = await JS.InvokeAsync<FirebaseAuthResult>("firebaseAuth.reauthenticate", password);
+                        if (result.success)
+                        {
+                            warehouse.Rows = newRows;
+                            EnsureGridSize(warehouse);
+                            await SaveGrid();
+                        }
+                        else
+                        {
+                            await JS.InvokeVoidAsync("alert", $"Nieprawidłowe hasło. Operacja anulowana.");
+                            StateHasChanged();
+                        }
+                    }
+                    else
+                    {
+                        StateHasChanged();
+                    }
                 }
                 else
                 {
@@ -322,9 +362,26 @@
                 bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Czy na pewno chcesz zmienić liczbę kolumn z {warehouse.Columns} na {newCols}? Może to spowodować utratę danych.");
                 if (confirmed)
                 {
-                    warehouse.Columns = newCols;
-                    EnsureGridSize(warehouse);
-                    await SaveGrid();
+                    var password = await JS.InvokeAsync<string>("prompt", "Wprowadź hasło aby potwierdzić zmianę rozmiaru:");
+                    if (!string.IsNullOrEmpty(password))
+                    {
+                        var result = await JS.InvokeAsync<FirebaseAuthResult>("firebaseAuth.reauthenticate", password);
+                        if (result.success)
+                        {
+                            warehouse.Columns = newCols;
+                            EnsureGridSize(warehouse);
+                            await SaveGrid();
+                        }
+                        else
+                        {
+                            await JS.InvokeVoidAsync("alert", $"Nieprawidłowe hasło. Operacja anulowana.");
+                            StateHasChanged();
+                        }
+                    }
+                    else
+                    {
+                        StateHasChanged();
+                    }
                 }
                 else
                 {

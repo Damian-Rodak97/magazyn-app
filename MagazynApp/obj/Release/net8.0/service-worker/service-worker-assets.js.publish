@@ -1,12 +1,12 @@
 self.assetsManifest = {
-  "version": "MvBzSvC1",
+  "version": "OjoS8Rns",
   "assets": [
     {
       "hash": "sha256-WoB0ASb73pjkZnwwDvbN+4AMjceenp+UNE1+3CK0U6Q=",
       "url": "MagazynApp.styles.css"
     },
     {
-      "hash": "sha256-m/D7X1IeoQWdvuxOTiPgaSHKTaydncwZylwLMqRxMxU=",
+      "hash": "sha256-mek8T95pVFtQOzGvub5HWuygK1xQ0/7tc2AMwwlpJuk=",
       "url": "_framework/MagazynApp.wasm"
     },
     {
@@ -178,7 +178,7 @@ self.assetsManifest = {
       "url": "_framework/System.wasm"
     },
     {
-      "hash": "sha256-16Ox0nyE7dzV9pzkC1D++amI9/nxacj6L9KyK6mw6sA=",
+      "hash": "sha256-MKK38qYIhYhdne7/efiX4mhcDjSuJswZv5xowQAaToY=",
       "url": "_framework/blazor.boot.json"
     },
     {
@@ -230,7 +230,7 @@ self.assetsManifest = {
       "url": "favicon.png"
     },
     {
-      "hash": "sha256-lqtNtPcx429Bf5FKcb9i6PyazjgFiiZEcMz+K5S/gPo=",
+      "hash": "sha256-5rN/+kSDIJZecvQXKve+1wZVXEWOA4Ec12oBaoURuEE=",
       "url": "firebase.js"
     },
     {

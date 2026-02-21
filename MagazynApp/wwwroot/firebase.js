@@ -1,6 +1,6 @@
 // Firebase configuration and services for Magazyn App
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, query, where } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 // Firebase configuration
@@ -83,6 +83,24 @@ window.firebaseAuth = {
     // Check if user is logged in
     isLoggedIn: function() {
         return currentUser !== null;
+    },
+
+    // Re-authenticate user with password (for sensitive operations)
+    reauthenticate: async function(password) {
+        try {
+            if (!currentUser) {
+                return { success: false, error: 'No user logged in' };
+            }
+
+            const credential = EmailAuthProvider.credential(currentUser.email, password);
+            await reauthenticateWithCredential(currentUser, credential);
+            
+            console.log('Re-authentication successful');
+            return { success: true };
+        } catch (error) {
+            console.error('Re-authentication error:', error.code, error.message);
+            return { success: false, error: error.message };
+        }
     }
 };
 
