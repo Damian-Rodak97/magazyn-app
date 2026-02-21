@@ -78,7 +78,7 @@
         var isLogged = await JS.InvokeAsync<string>("localStorage.getItem", "isLoggedIn");
         if (isLogged == "true")
         {
-            Navigation.NavigateTo("/");
+            Navigation.NavigateTo("./");
         }
     }
     
@@ -112,7 +112,7 @@
         
         // Zalogowano pomyślnie
         await JS.InvokeVoidAsync("localStorage.setItem", "isLoggedIn", "true");
-        Navigation.NavigateTo("/");
+        Navigation.NavigateTo("./");
     }
     
     private async Task<string> HashPassword(string input)
