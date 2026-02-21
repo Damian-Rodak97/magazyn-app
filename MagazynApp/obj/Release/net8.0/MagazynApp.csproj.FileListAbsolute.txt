@@ -1062,6 +1062,6 @@ C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\refint\MagazynApp.
 C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\MagazynApp.pdb
 C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\ref\MagazynApp.dll
 C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\MagazynApp.sourcelink.json
-C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\compressed\il5zes5gtn-{0}-u2r5rmso41-u2r5rmso41.gz
-C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\compressed\04syjo7412-{0}-qieh8h7y11-qieh8h7y11.gz
-C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\compressed\cfvq9y1s9h-{0}-6fja4uc5fy-6fja4uc5fy.gz
+C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\compressed\il5zes5gtn-{0}-rvuo6maw2f-rvuo6maw2f.gz
+C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\compressed\04syjo7412-{0}-kpdnyf96uh-kpdnyf96uh.gz
+C:\Users\Damian\Desktop\Magazyn\MagazynApp\obj\Release\net8.0\compressed\cfvq9y1s9h-{0}-0tivzrfv2f-0tivzrfv2f.gz

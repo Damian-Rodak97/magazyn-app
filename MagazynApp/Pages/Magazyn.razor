@@ -89,7 +89,7 @@
         var isLoggedIn = await JS.InvokeAsync<string>("localStorage.getItem", "isLoggedIn");
         if (isLoggedIn != "true")
         {
-            Navigation.NavigateTo("login", false);
+            Navigation.NavigateTo("/login");
             return;
         }
         
@@ -184,7 +184,7 @@
         if (confirmed)
         {
             await JS.InvokeVoidAsync("localStorage.removeItem", "isLoggedIn");
-            Navigation.NavigateTo("login", false);
+            Navigation.NavigateTo("/login");
         }
     }
     

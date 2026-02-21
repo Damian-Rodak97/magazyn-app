@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "MagazynApp",
   "resources": {
-    "hash": "sha256-B1aABIzWcG8FRv+LZE4gwDIUueSBu2A5iQkykbqCTU8=",
+    "hash": "sha256-7qFS883S+vo5hXdCkggFIvSjnAkWspQc3nDQM0v27b4=",
     "jsModuleNative": {
       "dotnet.native.js": "sha256-4g0GzvOXSwZvTLca4PrWJkoeltz+V9IF/hEFDcnVros="
     },
@@ -60,7 +60,7 @@
       "System.Threading.wasm": "sha256-QShI2C5xANYGltmbOa2Kd0zpvKDNCxXM8puG5prJgFM=",
       "System.wasm": "sha256-YSihFa+YInKtLQNBZCK8pNPmas5a97BeIhBK9Cl2Qx8=",
       "System.Private.CoreLib.wasm": "sha256-1rWW87k6N8k6fsviXY2DpkRBIIpN7bmgJs9pvvD/OcM=",
-      "MagazynApp.wasm": "sha256-VuvVAXb5G0RrYiuN1Ow2sOn5++TwC5fEfpJ98Rs1JSc="
+      "MagazynApp.wasm": "sha256-VzDyqvUyl2xv7FHrPC1CakUmuZI1hWxGObqM30JvSfg="
     }
   },
   "cacheBootResources": true,
