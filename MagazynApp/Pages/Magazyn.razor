@@ -55,10 +55,23 @@
         var cellValue = warehouse.Grid[row][col] ?? "";
         
         // Usuń wszystkie spacje przed porównaniem
-        var cellValueNoSpaces = cellValue.Replace(" ", "");
         var searchTextNoSpaces = SearchText.Replace(" ", "");
         
-        return cellValueNoSpaces.Equals(searchTextNoSpaces, StringComparison.OrdinalIgnoreCase);
+        // Sprawdź czy cała wartość pasuje
+        var cellValueNoSpaces = cellValue.Replace(" ", "");
+        if (cellValueNoSpaces.Equals(searchTextNoSpaces, StringComparison.OrdinalIgnoreCase))
+            return true;
+        
+        // Podziel wartość komórki po przecinkach i sprawdź każdą część
+        var cellParts = cellValue.Split(',');
+        foreach (var part in cellParts)
+        {
+            var partNoSpaces = part.Trim().Replace(" ", "");
+            if (partNoSpaces.Equals(searchTextNoSpaces, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        
+        return false;
     }
     
     void OnSearchTextChanged()
@@ -748,9 +761,11 @@
     table.table-bordered {
         border-collapse: collapse;
         width: 100%;
+        table-layout: fixed;
     }
     table.table-bordered td {
         border: 1px solid #000;
+        min-width: 100px;
     }
 
     /* Style do drukowania */

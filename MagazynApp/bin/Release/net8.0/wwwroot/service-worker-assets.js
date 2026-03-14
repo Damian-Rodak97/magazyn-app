@@ -1,16 +1,16 @@
 self.assetsManifest = {
-  "version": "tUIxbC2B",
+  "version": "DZC+FoEv",
   "assets": [
     {
       "hash": "sha256-WoB0ASb73pjkZnwwDvbN+4AMjceenp+UNE1+3CK0U6Q=",
       "url": "MagazynApp.styles.css"
     },
     {
-      "hash": "sha256-Z/yIPzp3fwJtNabybFa4pnYCnQC+epkzU5mInnoUc88=",
+      "hash": "sha256-nRliumceH5J9H6HSPnsGcsiOSOx+Jf/CK+YpfOqbDAY=",
       "url": "_framework/MagazynApp.pdb"
     },
     {
-      "hash": "sha256-mek8T95pVFtQOzGvub5HWuygK1xQ0/7tc2AMwwlpJuk=",
+      "hash": "sha256-BuwqVxkSJqcVGmXdNUfJGq1PDBaN2afH9+jqqUQUzK4=",
       "url": "_framework/MagazynApp.wasm"
     },
     {
@@ -774,7 +774,7 @@ self.assetsManifest = {
       "url": "_framework/WindowsBase.wasm"
     },
     {
-      "hash": "sha256-COYLhDlZhmQROBNlMONFO3TJxpveVOFrWcYsPKL6fxs=",
+      "hash": "sha256-a/bS72+kgU8Xc5Gg6AFEjM5JoHnq2/a8V9MH6vhtmEI=",
       "url": "_framework/blazor.boot.json"
     },
     {
