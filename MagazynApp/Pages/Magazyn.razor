@@ -268,6 +268,17 @@
         if (warehouse == null) return;
         if (row >= 0 && row < warehouse.Corridors.Count && col >= 0 && col < warehouse.Corridors[row].Count)
         {
+            // Sprawdź czy próbujemy oznaczyć jako korytarz komórkę z wartością
+            if (!warehouse.Corridors[row][col])
+            {
+                var cellValue = warehouse.Grid[row][col] ?? "";
+                if (!string.IsNullOrWhiteSpace(cellValue))
+                {
+                    await JS.InvokeVoidAsync("alert", "Nie można oznaczyć komórki jako korytarz, ponieważ zawiera wartość. Najpierw usuń zawartość komórki.");
+                    return;
+                }
+            }
+            
             warehouse.Corridors[row][col] = !warehouse.Corridors[row][col];
             if (warehouse.Corridors[row][col])
             {
