@@ -1,12 +1,12 @@
 self.assetsManifest = {
-  "version": "JT4DpJDu",
+  "version": "L1KI+N4u",
   "assets": [
     {
       "hash": "sha256-WoB0ASb73pjkZnwwDvbN+4AMjceenp+UNE1+3CK0U6Q=",
       "url": "MagazynApp.styles.css"
     },
     {
-      "hash": "sha256-BuwqVxkSJqcVGmXdNUfJGq1PDBaN2afH9+jqqUQUzK4=",
+      "hash": "sha256-g1gcSsnw52hPZ4qSpoFQogRhem+gSwF0jacfgviwZIg=",
       "url": "_framework/MagazynApp.wasm"
     },
     {
@@ -178,7 +178,7 @@ self.assetsManifest = {
       "url": "_framework/System.wasm"
     },
     {
-      "hash": "sha256-0KdTNEkamDAeQ6myIe3t4coTwgbaGKRIP9y+87sYbiU=",
+      "hash": "sha256-6pbwuyduRDa5HCSjYlJo14aIkjBOKcmhvPmp2nKtjnI=",
       "url": "_framework/blazor.boot.json"
     },
     {
